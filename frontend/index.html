@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 
     <!-- external stylesheet -->
     <link rel="stylesheet" href="css/styles.css">
@@ -17,14 +18,14 @@
 
     <!-- Navbar -->
     <nav class="navbar">
+        <button id="menuToggle" class="menu-toggle">☰</button>
         <div class="nav-brand">
-            <img src="https://upload.wikimedia.org/wikipedia/en/5/58/ISRO_logo.svg" alt="ISRO Logo" style="height: 36px; object-fit: contain;">
             <span>NISAR Data Analysis</span>
         </div>
         <div class="nav-links">
-            <a href="#" class="active">Dashboard</a>
+            <!-- <a href="#" class="active">Dashboard</a>
             <a href="#">Observations</a>
-            <a href="#">Settings</a>
+            <a href="#">Settings</a> -->
         </div>
         <div class="nav-profile" style="display: flex; align-items: center; gap: 16px;">
             <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
@@ -46,15 +47,99 @@
                 </div>
                 <span id="themeStatusText">Dark Ops</span>
             </button>
-            <div class="avatar">O</div>
+            <!-- <div class="avatar">O</div> -->
         </div>
     </nav>
+ <div class="layout">
+
+    <aside class="sidebar" id="sidebar">
+
+    <div class="logo-details">
+        <span class="logo_name">NISAR</span>
+        <i class='bx bx-menu' id="sidebarToggle"></i>
+    </div>
+
+    <ul class="nav-list">
+
+        <li>
+            <i class='bx bx-search'></i>
+            <input type="text" placeholder="Search...">
+            <span class="tooltip">Search</span>
+        </li>
+
+        <li>
+            <a href="#">
+                <i class='bx bx-grid-alt'></i>
+                <span class="links_name">Dashboard</span>
+            </a>
+            <span class="tooltip">Dashboard</span>
+        </li>
+
+        <li>
+            <a href="#">
+                <i class='bx bx-search-alt'></i>
+                <span class="links_name">Observation Explorer</span>
+            </a>
+            <span class="tooltip">Observations</span>
+        </li>
+
+        <li>
+            <a href="#">
+                <i class='bx bx-map'></i>
+                <span class="links_name">World Map</span>
+            </a>
+            <span class="tooltip">World Map</span>
+        </li>
+
+        <li>
+            <a href="#">
+                <i class='bx bx-line-chart'></i>
+                <span class="links_name">Analytics</span>
+            </a>
+            <span class="tooltip">Analytics</span>
+        </li>
+
+        <li>
+            <a href="#">
+                <i class='bx bx-layer'></i>
+                <span class="links_name">Patch Statistics</span>
+            </a>
+            <span class="tooltip">Patch Stats</span>
+        </li>
+
+        <li>
+            <a href="#">
+                <i class='bx bx-package'></i>
+                <span class="links_name">Products</span>
+            </a>
+            <span class="tooltip">Products</span>
+        </li>
+
+        <li>
+            <a href="#">
+                <i class='bx bx-error'></i>
+                <span class="links_name">Failures</span>
+            </a>
+            <span class="tooltip">Failures</span>
+        </li>
+
+    </ul>
+
+</aside>
 
     <!-- Main Content -->
     <main class="main-content">
-        <!-- root component -->
+
+        <div class="dashboard-grid">
+            <initial-table></initial-table>
+            <time-based-initial-table></time-based-initial-table>
+        </div>
+
         <observations-app></observations-app>
+
     </main>
+
+</div>
 
     <!-- Footer -->
     <footer class="footer">

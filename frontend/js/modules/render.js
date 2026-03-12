@@ -35,8 +35,12 @@ export function renderResults(container, result, paginationCallback) {
             "CMD_SSAR_END_DATETIME"
         ];
 
+        // keep refobs id for later detail fetch
+        const ref = item.REFOBS_ID;
         const hiddenRows = [];
+        const hiddenExclude = new Set(["TYPE", "start", "end", "rawStart", "rawEnd", "rawstart", "rawend"]);
 
+        // first render important fields normally
         importantFields.forEach(field => {
             if (item[field]) {
                 const row = document.createElement("tr");
@@ -48,20 +52,19 @@ export function renderResults(container, result, paginationCallback) {
             }
         });
 
-        // hide some internal fields that should not be shown in any filter
-        const hiddenExclude = new Set(["TYPE", "start", "end", "rawStart", "rawEnd", "rawstart", "rawend"]);
-        Object.entries(item).forEach(([key, value]) => {
-            if (!importantFields.includes(key) && !hiddenExclude.has(key)) {
-                const row = document.createElement("tr");
-                row.style.display = "none";
-                row.innerHTML = `
-                    <td>${key}</td>
-                    <td>${value || "-"}</td>
-                `;
-                hiddenRows.push(row);
-                table.appendChild(row);
-            }
+        // render other fields as hidden rows
+        Object.entries(item).forEach(([field, value]) => {
+            if (importantFields.includes(field) || hiddenExclude.has(field)) return;
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${field}</td>
+                <td>${value || ""}</td>
+            `;
+            row.style.display = "none";
+            table.appendChild(row);
+            hiddenRows.push(row);
         });
+
 
         const toggleBtn = document.createElement("button");
         toggleBtn.textContent = "Show More";
