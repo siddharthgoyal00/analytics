@@ -1,6 +1,7 @@
 import { buildUrl, fetchJson } from "./modules/search.js";
 import "./modules/initialTable.js";
 import "./modules/timeBasedInitialTable.js"
+import "./modules/analyticsDashboard.js";
 import {
   showError,
   showLoading,
@@ -9,23 +10,7 @@ import {
   showObservationDetails as renderObservationDetails,
 } from "./modules/render.js";
 
-let sidebar = document.querySelector(".sidebar");
-let closeBtn = document.querySelector("#menuToggle");
-
-closeBtn.addEventListener("click", () => {
-    sidebar.classList.toggle("open");
-});
-
-
-function menuBtnChange() {
-    if (sidebar.classList.contains("open")) {
-        closeBtn.classList.replace("bx-menu", "bx-menu-alt-right");
-    } else {
-        closeBtn.classList.replace("bx-menu-alt-right", "bx-menu");
-    }
-}
-
-menuBtnChange();
+// Sidebar removed
 class ObservationsApp extends HTMLElement {
     // Convert ISO date format (YYYY-MM-DD) to Julian day format (YYYY-DDD)
     isoToJulianDay(isoDate, time = "") {

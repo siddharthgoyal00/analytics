@@ -15,11 +15,11 @@ class TimeBasedInitialTable extends HTMLElement {
 
           <button id="searchBtn">Search</button>
         </div>
+        <p id="status" class="muted" style="margin:0 0 10px 0;"></p>
 
-        <table border="1" cellpadding="8" cellspacing="0"
-               style="width:100%; border-collapse:collapse; text-align:center;">
-          
-          <thead style="background-color:#f2f2f2;">
+        <div class="table-wrap">
+        <table class="data-table">
+          <thead>
             <tr>
               <th>COP Observation Count</th>
               <th>L0 Completed Observation Count</th>
@@ -42,6 +42,7 @@ class TimeBasedInitialTable extends HTMLElement {
           </tbody>
 
         </table>
+        </div>
       </div>
     `;
 
@@ -60,11 +61,7 @@ class TimeBasedInitialTable extends HTMLElement {
         return;
       }
 
-      console.log("Start Date:", startDate);
-      console.log("End Date:", endDate);
-
-      // Later you can call backend here
-      // fetch(`/api/time-summary?start=${startDate}&end=${endDate}`)
+      this.load(startDate, endDate);
     });
   }
 
@@ -79,6 +76,29 @@ class TimeBasedInitialTable extends HTMLElement {
       <td>${data.failed_dpgs}</td>
       <td>${data.dpgs_success_percent}%</td>
     `;
+  }
+
+  async load(startDate, endDate) {
+    const status = this.querySelector("#status");
+    if (status) status.textContent = "Loading...";
+
+    const url = `/api/analytics/summary?start=${encodeURIComponent(
+      startDate
+    )}&end=${encodeURIComponent(endDate)}`;
+
+    try {
+      const { fetchJsonCached } = await import("./httpCache.js");
+      const result = await fetchJsonCached(url, { ttlMs: 2 * 60_000 });
+      if (result && result.__available === false) {
+        if (status) status.textContent = "API not available yet.";
+        return;
+      }
+      this.updateValues(result);
+      if (status) status.textContent = "";
+    } catch (e) {
+      console.error(e);
+      if (status) status.textContent = "Failed to load.";
+    }
   }
 }
 

@@ -4,10 +4,9 @@ class InitialTable extends HTMLElement {
       <div class="container">
         <h2>Data From launch Date to till now </h2>
 
-        <table border="1" cellpadding="8" cellspacing="0"
-               style="width:100%; border-collapse:collapse; text-align:center;">
-          
-          <thead style="background-color:#f2f2f2;">
+        <div class="table-wrap">
+        <table class="data-table">
+          <thead>
             <tr>
               <th>COP Observation Count</th>
               <th>L0 Completed Observation Count</th>
@@ -30,8 +29,13 @@ class InitialTable extends HTMLElement {
           </tbody>
 
         </table>
+        </div>
+        <p id="status" class="muted" style="margin-top:10px;"></p>
       </div>
     `;
+
+    // Auto-load launch->today (landing requirement)
+    this.load();
   }
 
   updateValues(data) {
@@ -45,6 +49,33 @@ class InitialTable extends HTMLElement {
       <td>${data.failed_dpgs}</td>
       <td>${data.dpgs_success_percent}%</td>
     `;
+  }
+
+  async load() {
+    const status = this.querySelector("#status");
+    if (status) status.textContent = "Loading...";
+
+    // Matches planned analytics endpoint used by analytics-dashboard.
+    // Default launch date can be adjusted later.
+    const launchDate = "2026-01-01";
+    const today = new Date().toISOString().slice(0, 10);
+    const url = `/api/analytics/summary?start=${encodeURIComponent(
+      launchDate
+    )}&end=${encodeURIComponent(today)}`;
+
+    try {
+      const { fetchJsonCached } = await import("./httpCache.js");
+      const result = await fetchJsonCached(url, { ttlMs: 5 * 60_000 });
+      if (result && result.__available === false) {
+        if (status) status.textContent = "API not available yet.";
+        return;
+      }
+      this.updateValues(result);
+      if (status) status.textContent = "";
+    } catch (e) {
+      console.error(e);
+      if (status) status.textContent = "Failed to load.";
+    }
   }
 }
 
