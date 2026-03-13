@@ -11,6 +11,148 @@ import {
 } from "./modules/render.js";
 
 // Sidebar removed
+
+// Lightweight controller for Failed Observation dropdown and views
+document.addEventListener("DOMContentLoaded", () => {
+  const dropdownToggle = document.getElementById("failedDropdownToggle");
+  const dropdownMenu = document.getElementById("failedDropdownMenu");
+  const l0View = document.getElementById("failed-l0-view");
+  const dpgsView = document.getElementById("failed-dpgs-view");
+
+  if (!dropdownToggle || !dropdownMenu || !l0View || !dpgsView) return;
+
+  const closeMenu = () => {
+    dropdownMenu.style.display = "none";
+  };
+
+  dropdownToggle.addEventListener("click", () => {
+    const visible = dropdownMenu.style.display === "block";
+    dropdownMenu.style.display = visible ? "none" : "block";
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!dropdownMenu.contains(e.target) && e.target !== dropdownToggle) {
+      closeMenu();
+    }
+  });
+
+  const renderTable = (container, title, columns, rows) => {
+    container.innerHTML = "";
+    const outer = document.createElement("div");
+    outer.className = "container";
+
+    const h = document.createElement("h2");
+    h.textContent = title;
+    outer.appendChild(h);
+
+    const wrap = document.createElement("div");
+    wrap.className = "table-wrap";
+
+    const table = document.createElement("table");
+    table.className = "data-table";
+
+    const thead = document.createElement("thead");
+    const hr = document.createElement("tr");
+    columns.forEach((c) => {
+      const th = document.createElement("th");
+      th.textContent = c.label;
+      hr.appendChild(th);
+    });
+    thead.appendChild(hr);
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+    if (!rows.length) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = columns.length;
+      td.textContent = "No failures found.";
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    } else {
+      rows.forEach((r) => {
+        const tr = document.createElement("tr");
+        columns.forEach((c) => {
+          const td = document.createElement("td");
+          const v = r[c.key];
+          td.textContent =
+            v === null || v === undefined || v === "" ? "-" : String(v);
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+    }
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    outer.appendChild(wrap);
+
+    container.appendChild(outer);
+    container.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const loadL0Failed = async () => {
+    l0View.innerHTML = "<div class='container'><p class='loading'>Loading L0 failures...</p></div>";
+    try {
+      const res = await fetch("/api/failures/l0");
+      const json = await res.json();
+      const rows = json.data || [];
+      renderTable(
+        l0View,
+        "L0 Failed Observation Attributes",
+        [
+          { key: "observation_id", label: "Observation ID" },
+          { key: "rc_id", label: "RC ID" },
+          { key: "dump_orbit", label: "Dump Orbit" },
+          { key: "dump_station", label: "Dump Station" },
+          { key: "error_message", label: "Error Message" },
+        ],
+        rows,
+      );
+    } catch (e) {
+      console.error(e);
+      l0View.innerHTML =
+        "<div class='container'><p class='error'>Failed to load L0 failures.</p></div>";
+    }
+  };
+
+  const loadDpgsFailed = async () => {
+    dpgsView.innerHTML = "<div class='container'><p class='loading'>Loading DPGS failures...</p></div>";
+    try {
+      const res = await fetch("/api/failures/dpgs");
+      const json = await res.json();
+      const rows = json.data || [];
+      renderTable(
+        dpgsView,
+        "DPGS Failed Observation Attributes",
+        [
+          { key: "observation_id", label: "Observation ID" },
+          { key: "rc_id", label: "RC ID" },
+          { key: "track", label: "Track" },
+          { key: "frame", label: "Frame" },
+          { key: "work_order_id", label: "Work Order ID" },
+          { key: "error_message", label: "Error Message" },
+        ],
+        rows,
+      );
+    } catch (e) {
+      console.error(e);
+      dpgsView.innerHTML =
+        "<div class='container'><p class='error'>Failed to load DPGS failures.</p></div>";
+    }
+  };
+
+  dropdownMenu.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-failed-view]");
+    if (!btn) return;
+    const which = btn.getAttribute("data-failed-view");
+    closeMenu();
+    if (which === "l0") {
+      loadL0Failed();
+    } else if (which === "dpgs") {
+      loadDpgsFailed();
+    }
+  });
+});
 class ObservationsApp extends HTMLElement {
     // Convert ISO date format (YYYY-MM-DD) to Julian day format (YYYY-DDD)
     isoToJulianDay(isoDate, time = "") {

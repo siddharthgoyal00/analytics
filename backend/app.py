@@ -354,5 +354,170 @@ def get_observation(refobs_id):
         return jsonify({"error": "Not found"}), 404
     return jsonify({"data": dict(row)})
 
+
+@app.route("/api/failures/l0", methods=["GET"])
+def l0_failed_observations():
+    """
+    L0 failed observation attributes.
+    Heuristic: SCHEDULERINGESTNISAR entries at ilevel '0' with validFlag != 'Y'
+    are treated as L0 failures. Join to PRODUCTMETAINFONISAR to recover
+    observation id and to SCHEDULERINGESTNISAR for dumping orbit / station.
+    """
+    page = parse_page(request.args.get("page"))
+    per_page = 50
+    offset = (page - 1) * per_page
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        base_where = "WHERE s.ilevel = '0' AND IFNULL(s.validFlag, '') != 'Y'"
+
+        count_sql = """
+            SELECT COUNT(*) as cnt
+            FROM SCHEDULERINGESTNISAR s
+            LEFT JOIN PRODUCTMETAINFONISAR p
+              ON s.workorder_id = p.workorder_id
+            {where}
+        """.format(
+            where=base_where
+        )
+        cursor.execute(count_sql)
+        total = cursor.fetchone()["cnt"]
+
+        data_sql = f"""
+            SELECT
+              IFNULL(p.OBSERVATIONID, '') AS observation_id,
+              IFNULL(p.cridid, '') AS rc_id,
+              s.dumpingOrbit AS dump_orbit,
+              s.sat_id AS dump_station,
+              IFNULL(p.status_str, '') AS error_message
+            FROM SCHEDULERINGESTNISAR s
+            LEFT JOIN PRODUCTMETAINFONISAR p
+              ON s.workorder_id = p.workorder_id
+            {base_where}
+            ORDER BY s.ingesttime DESC
+            LIMIT ? OFFSET ?
+        """
+        cursor.execute(data_sql, (per_page, offset))
+        rows = [dict(r) for r in cursor.fetchall()]
+    except Exception:
+        # If the tables don't exist in this DB, just return an empty dataset
+        total = 0
+        rows = []
+    finally:
+        conn.close()
+
+    # normalise keys to frontend contract
+    payload = [
+        {
+            "observation_id": r.get("observation_id") or "",
+            "rc_id": r.get("rc_id") or "",
+            "dump_orbit": r.get("dump_orbit"),
+            "dump_station": r.get("dump_station") or "",
+            "error_message": r.get("error_message") or "",
+        }
+        for r in rows
+    ]
+
+    return jsonify(
+        {
+            "data": payload,
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+        }
+    )
+
+
+@app.route("/api/failures/dpgs", methods=["GET"])
+def dpgs_failed_observations():
+    """
+    DPGS failed observation attributes.
+    Heuristic: any scene record with a non-empty *_error_msg is treated
+    as a DPGS failure row.
+    """
+    page = parse_page(request.args.get("page"))
+    per_page = 50
+    offset = (page - 1) * per_page
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Consider any of the product-level error columns
+    error_cols = [
+        "produceRIFG_error_msg",
+        "produceRUNW_error_msg",
+        "produceROFF_error_msg",
+        "produceGUNW_error_msg",
+        "produceGOFF_error_msg",
+        "produceRSLC_error_msg",
+        "produceGSLC_error_msg",
+        "produceGCOV_error_msg",
+        "produceRIFG_Lerror_msg",
+        "produceRUNW_Lerror_msg",
+        "produceROFF_Lerror_msg",
+        "produceGUNW_Lerror_msg",
+        "produceGOFF_Lerror_msg",
+        "produceRSLC_Lerror_msg",
+        "produceGSLC_Lerror_msg",
+        "produceGCOV_Lerror_msg",
+    ]
+
+    non_null_cond = " OR ".join([f"{col} IS NOT NULL AND {col} != ''" for col in error_cols])
+
+    try:
+        count_sql = f"""
+            SELECT COUNT(*) as cnt
+            FROM scene
+            WHERE {non_null_cond}
+        """
+        cursor.execute(count_sql)
+        total = cursor.fetchone()["cnt"]
+
+        data_sql = f"""
+            SELECT
+              observation_id,
+              crid_id AS rc_id,
+              track,
+              frame,
+              Master_wid AS workorder_id,
+              COALESCE(
+                {", ".join(error_cols)}
+              ) AS error_message
+            FROM scene
+            WHERE {non_null_cond}
+            ORDER BY COALESCE(gen_time, scene_start_time) DESC
+            LIMIT ? OFFSET ?
+        """
+        cursor.execute(data_sql, (per_page, offset))
+        rows = [dict(r) for r in cursor.fetchall()]
+    except Exception:
+        total = 0
+        rows = []
+    finally:
+        conn.close()
+
+    payload = [
+        {
+            "observation_id": r.get("observation_id") or "",
+            "rc_id": r.get("rc_id") or "",
+            "track": r.get("track"),
+            "frame": r.get("frame"),
+            "work_order_id": r.get("workorder_id") or "",
+            "error_message": r.get("error_message") or "",
+        }
+        for r in rows
+    ]
+
+    return jsonify(
+        {
+            "data": payload,
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+        }
+    )
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True) 

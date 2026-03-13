@@ -1,0 +1,138 @@
+Here’s what I’ve implemented for you.
+
+1) Navbar: “Failed Observation” dropdown
+Added a Failed Observation control in the navbar with two options:
+L0 Failed
+DPGS Failed
+Code is in index.html:
+
+<div class="nav-links">
+    <div class="nav-dropdown">
+        <button class="nav-btn" id="failedDropdownToggle">
+            Failed Observation
+        </button>
+        <div class="nav-dropdown-menu" id="failedDropdownMenu">
+            <button data-failed-view="l0">L0 Failed</button>
+            <button data-failed-view="dpgs">DPGS Failed</button>
+        </div>
+    </div>
+</div>
+Dropdown styling is in styles.css (.nav-dropdown, .nav-btn, .nav-dropdown-menu).
+
+2) New frontend sections + tables (new “route-like” views)
+Under the main content, I added two dedicated sections in index.html:
+
+<observations-app></observations-app>
+<!-- Failed observations views -->
+<section id="failed-l0-view"></section>
+<section id="failed-dpgs-view"></section>
+In js/app.js I added a small controller that:
+
+Toggles the dropdown open/closed.
+
+On click of L0 Failed:
+
+Calls GET /api/failures/l0
+Renders a table in #failed-l0-view:
+Columns:
+
+Observation ID
+RC ID
+Dump Orbit
+Dump Station
+Error Message
+On click of DPGS Failed:
+
+Calls GET /api/failures/dpgs
+Renders a table in #failed-dpgs-view:
+Columns:
+
+Observation ID
+RC ID
+Track
+Frame
+Work Order ID
+Error Message
+Core JS (already in app.js):
+
+Sets up dropdown (click outside closes it).
+Uses fetch to hit the new APIs and builds <table class="data-table"> inside a .container + .table-wrap.
+Scrolls smoothly to the section when the table is rendered.
+3) Backend: new failure endpoints
+I added two new Flask routes in backend/app.py without touching the existing observation/session search logic:
+
+a) /api/failures/l0
+Purpose: L0 Failed Observation Attributes:
+
+Observation ID
+RC ID
+Dump Orbit
+Dump Station
+Error Message
+Implementation:
+
+Tries to use:
+SCHEDULERINGESTNISAR (for L0 ingest/workorder + dumpingOrbit, sat_id, validFlag, ilevel)
+PRODUCTMETAINFONISAR (for OBSERVATIONID, cridid, status_str)
+Heuristic:
+Rows with ilevel = '0' and validFlag != 'Y' are treated as L0 failures.
+Returns JSON like:
+{
+  "data": [
+    {
+      "observation_id": "...",
+      "rc_id": "...",
+      "dump_orbit": 12345,
+      "dump_station": "SAN",
+      "error_message": "..."
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "per_page": 50
+}
+If SCHEDULERINGESTNISAR / PRODUCTMETAINFONISAR are not present in the actual DB, the endpoint now gracefully returns:
+
+{"data": [], "total": 0, "page": 1, "per_page": 50}
+(no 500 error).
+
+b) /api/failures/dpgs
+Purpose: DPGS Failed Observation Attributes:
+
+Observation ID
+RC ID
+Track
+Frame
+Work Order ID
+Error Message
+Implementation:
+
+Uses the scene table.
+Treats a record as “DPGS failed” if any of the many *_error_msg columns is non-empty (e.g. produceRIFG_error_msg, produceRUNW_error_msg, … including _Lerror_msg variants).
+Returns JSON like:
+{
+  "data": [
+    {
+      "observation_id": "...",
+      "rc_id": "...",
+      "track": 123,
+      "frame": 45,
+      "work_order_id": "WO123",
+      "error_message": "..."
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "per_page": 50
+}
+If scene doesn’t exist in the current DB, it also falls back to { data: [], total: 0 } instead of 500.
+
+4) Current behavior with your DB
+Your live SQLite file doesn’t currently have SCHEDULERINGESTNISAR and scene tables (the error logs said “no such table”).
+I’ve wrapped both endpoints in try/except so they now return 200 OK with empty data in that case.
+This means:
+The new navbar dropdown works.
+Clicking L0 Failed / DPGS Failed shows the correct table structure, but likely with “No failures found.” until those tables (and data) are actually present in the DB.
+If you’d like, the next step can be to adapt the L0/DPGS failure logic to whatever real failure tables you already have populated (for example, if you’re currently logging failures somewhere else), and I can update the SQL accordingly.
+
+one thing is that add both of them to the new page and give the search option for the observation id for l0 failed and obseravtion and workorderid for dpgs failed 

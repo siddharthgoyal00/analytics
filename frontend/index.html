@@ -22,9 +22,15 @@
             <span>NISAR Data Analysis</span>
         </div>
         <div class="nav-links">
-            <!-- <a href="#" class="active">Dashboard</a>
-            <a href="#">Observations</a>
-            <a href="#">Settings</a> -->
+            <div class="nav-dropdown">
+                <button class="nav-btn" id="failedDropdownToggle">
+                    Failed Observation
+                </button>
+                <div class="nav-dropdown-menu" id="failedDropdownMenu">
+                    <button data-failed-view="l0">L0 Failed</button>
+                    <button data-failed-view="dpgs">DPGS Failed</button>
+                </div>
+            </div>
         </div>
         <div class="nav-profile" style="display: flex; align-items: center; gap: 16px;">
             <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
@@ -60,6 +66,10 @@
         <analytics-dashboard data-launch-date="2026-01-01"></analytics-dashboard>
 
         <observations-app></observations-app>
+
+        <!-- Failed observations views -->
+        <section id="failed-l0-view"></section>
+        <section id="failed-dpgs-view"></section>
 
     </main>
 
